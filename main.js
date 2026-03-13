@@ -60,10 +60,17 @@ document.body.appendChild(stats.domElement);
 
 // --- Constantes globales ---
 const GRAVITY = 30;
-const RESTITUTION = 0.7;
 const NUM_SPHERES = 100;
 const SPHERE_RADIUS = 0.2;
 const STEPS_PER_FRAME = 5;
+
+// --- Parámetros ajustables (físicas) ---
+let params = {
+    restitution: 0.7,        // Rebote con el mundo
+    ballBallRestitution: 0.7, // Rebote entre bolas
+    damping: 1.5,             // Fricción del aire
+    throwStrength: 1.0        // Fuerza de lanzamiento
+};
 
 // --- Contador de bolas recolectadas ---
 let score = 0;
@@ -215,7 +222,7 @@ function throwBall() {
 
     sphere.collider.center.copy(playerCollider.end).addScaledVector(playerDirection, playerCollider.radius * 1.5);
 
-    const impulse = 15 + 30 * (1 - Math.exp((mouseTime - performance.now()) * 0.001));
+    const impulse = (15 + 30 * (1 - Math.exp((mouseTime - performance.now()) * 0.001))) * params.throwStrength;
     sphere.velocity.copy(playerDirection).multiplyScalar(impulse);
     sphere.velocity.addScaledVector(playerVelocity, 2);
 
@@ -280,7 +287,7 @@ function playerSphereCollision(sphere) {
     }
 }
 
-// --- Colisiones entre bolas ---
+// --- Colisiones entre bolas (con restitución ajustable) ---
 function spheresCollisions() {
     for (let i = 0, length = spheres.length; i < length; i++) {
         const s1 = spheres[i];
@@ -298,8 +305,10 @@ function spheresCollisions() {
                 const v1 = vector2.copy(normal).multiplyScalar(normal.dot(s1.velocity));
                 const v2 = vector3.copy(normal).multiplyScalar(normal.dot(s2.velocity));
 
-                s1.velocity.add(v2).sub(v1);
-                s2.velocity.add(v1).sub(v2);
+                // Aplicar restitución entre bolas
+                const rest = params.ballBallRestitution;
+                s1.velocity.add(v2.clone().multiplyScalar(1 + rest)).sub(v1.clone().multiplyScalar(1 + rest));
+                s2.velocity.add(v1.clone().multiplyScalar(1 + rest)).sub(v2.clone().multiplyScalar(1 + rest));
 
                 const d = (r - Math.sqrt(d2)) / 2;
                 s1.collider.center.addScaledVector(normal, d);
@@ -320,13 +329,13 @@ function updateSpheres(deltaTime) {
 
         if (result) {
             const vNormal = result.normal.dot(sphere.velocity);
-            sphere.velocity.addScaledVector(result.normal, -vNormal * (1 + RESTITUTION));
+            sphere.velocity.addScaledVector(result.normal, -vNormal * (1 + params.restitution));
             sphere.collider.center.add(result.normal.multiplyScalar(result.depth));
         } else {
             sphere.velocity.y -= GRAVITY * deltaTime;
         }
 
-        const damping = Math.exp(-1.5 * deltaTime) - 1;
+        const damping = Math.exp(-params.damping * deltaTime) - 1;
         sphere.velocity.addScaledVector(sphere.velocity, damping);
 
         playerSphereCollision(sphere);
@@ -379,15 +388,30 @@ loader.load('collision-world.glb', (gltf) => {
             if (child.material.map) child.material.map.anisotropy = 4;
         }
     });
+
+    // --- Ayuda visual del octree (opcional) ---
     const helper = new OctreeHelper(worldOctree);
     helper.visible = false;
     scene.add(helper);
-    const gui = new GUI({ width: 200 });
+
+    // --- GUI con controles de físicas ---
+    const gui = new GUI({ width: 250 });
     gui.domElement.style.position = 'fixed';
     gui.domElement.style.top = '60px';
     gui.domElement.style.right = '0';
     gui.domElement.style.zIndex = '300';
-    gui.add({ debug: false }, 'debug').onChange(value => helper.visible = value);
+
+    const physicsFolder = gui.addFolder('Físicas');
+    physicsFolder.add(params, 'restitution', 0.2, 0.95).name('Rebote mundo');
+    physicsFolder.add(params, 'ballBallRestitution', 0.2, 0.95).name('Rebote entre bolas');
+    physicsFolder.add(params, 'damping', 0.2, 3.0).name('Fricción aire');
+    physicsFolder.open();
+
+    const throwFolder = gui.addFolder('Lanzamiento');
+    throwFolder.add(params, 'throwStrength', 0.2, 3.0).name('Fuerza');
+    throwFolder.open();
+
+    gui.add({ debug: false }, 'debug').name('Mostrar Octree').onChange(value => helper.visible = value);
 });
 
 // --- Teletransportar jugador si se cae del mundo ---
