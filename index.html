@@ -7,12 +7,36 @@
     <link type="text/css" rel="stylesheet" href="./main.css">
 </head>
 <body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">🎮 Three.js Demo</a>
+            <ul class="nav-menu">
+                <li><a href="#">Inicio</a></li>
+                <li><a href="#">Acerca</a></li>
+                <li><a href="#">Contacto</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Instrucciones flotantes (ajustadas para no quedar detrás del navbar) -->
     <div id="info">
         Octree threejs demo - basic collisions with static triangle mesh<br />
         MOUSE to look around and to throw balls<br/>
         WASD to move and SPACE to jump
     </div>
+	<!-- Contador de bolas recolectadas -->
+	<div id="score">Bolas recolectadas: 0</div>
+
+    <!-- Contenedor del canvas -->
     <div id="container"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <p>&copy; 2026 Three.js Octree Collisions Demo. Todos los derechos reservados.</p>
+        </div>
+    </footer>
 
     <!-- Import map (debe permanecer en el HTML) -->
     <script type="importmap">
@@ -25,6 +49,6 @@
     </script>
 
     <!-- Script externo principal -->
-    <script type="module" src="main.js"></script>
+    <script type="module" src="./main.js"></script>
 </body>
 </html>
